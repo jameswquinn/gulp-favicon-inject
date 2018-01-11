@@ -1,75 +1,71 @@
-var del       = require('del'),
-    favicons  = require('gulp-favicons'),
-    gulp      = require('gulp'),
-    gutil     = require('gulp-util'),
-    inject    = require('gulp-inject');
-
-var config = {
-  appName: 'gulp-favicon-inject',
-  appDescription: 'Sample Gulp project that generates a set of favicon files and injects them into the <head> of a page.',
-  url: 'https://github.com/peiche/gulp-favicon-inject',
-  version: 1.0,
-  developerName: 'Paul Eiche',
-  developerURL: 'http://eichefam.net',
-  background: '#fff',
-  path: 'dist'
-};
-
 /**
- * Remove the generated favicon files.
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
  */
+
+'use strict';
+
+const gulp      = require('gulp');
+const frontMatter = require('gulp-front-matter')
+const del       = require('del')
+const $ = require('gulp-load-plugins')()
+const potrace = require('potrace')
+const fs = require('fs')
+const runOrder = require('run-sequence')
+const structure = require('./config/structure')
+const faviconOptions = require('./config/favicon')
+const responsiveOpions = require('./config/responsive')
+const reporter = require('./config/reporter')
+
 gulp.task('clean', function() {
-  return del([config.path]);
+  return del(structure.dest.dir);
 });
 
-/**
- * Generates favicon files used by various browsers and OS's.
- * Requires the `clean` task to run first.
- * For creating a Material Design icon, I recommend using
- * https://romannurik.github.io/AndroidAssetStudio/icons-launcher.html
- */
 gulp.task('favicon-generate', ['clean'], function() {
-  return gulp.src('src/favicon.png').pipe(favicons({
-    appName: config.appName,
-    appDescription: config.appDescription,
-    url: config.url,
-    version: config.version,
-    developerName: config.developerName,
-    developerURL: config.developerURL,
-    background: config.background,
-    path: '/' + config.path,
-    display: 'standalone',
-    orientation: 'portrait',
-    start_url: '/?homescreen=1',
-    logging: false,
-    online: false,
-    html: '../favicon.html',
-    pipeHTML: true,
-    replace: true
-  }))
-  .on('error', gutil.log)
-  .pipe(gulp.dest(config.path));
+  return gulp.src('src/favicon.png').pipe($.favicons(faviconOptions))
+  .on('error', $.util.log)
+  .pipe(gulp.dest(structure.dest.dir));
 });
 
-/**
- * Inject the generated `favicon.html` into `index.html`.
- * Requires the `favicon-generate` task to run first.
- */
 gulp.task('inject-favicon', ['favicon-generate'], function() {
-  gulp.src('./index.html')
-  .pipe(inject(gulp.src(['./favicon.html']), {
+  gulp.src('./src/index.html')
+  .pipe($.inject(gulp.src(['./favicon.html']), {
     starttag: '<!-- inject:head:{{ext}} -->',
     transform: function(filePath, file) {
       return file.contents.toString('utf8'); // return file contents as string
     }
   }))
-  .pipe(gulp.dest('./'));
+  .pipe(gulp.dest('./src'));
 });
 
-/**
- * Remove the generated favicon.html file.
- * Requires the `inject-favicon` task to run first.
- */
+gulp.task('img', () => {
+     gulp.src(structure.src.img)
+     .pipe($.plumber(reporter.onError))
+        .pipe($.responsive(responsiveOpions))
+        .pipe(gulp.dest(structure.dest.img))
+})
+
 gulp.task('clean-favicon', ['inject-favicon'], function() {
   return del(['favicon.html']);
 });
