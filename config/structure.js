@@ -1,5 +1,5 @@
 // Folder Structure Defaults
-const build  = 'tmp'
+const build  = 'dest'
 const pages  = 'app'
 const favicon = 'favicon'
 const assets = 'assets'

@@ -9,7 +9,7 @@ module.exports = {
   developerName: 'Paul Eiche',
   developerURL: 'http://eichefam.net',
   background: '#fff',
-  path: 'dist',
+  path: '/',
   display: 'standalone',
   orientation: 'portrait',
   start_url: '/?homescreen=1',

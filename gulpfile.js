@@ -23,12 +23,11 @@
  * SOFTWARE.
  *
  */
-
 'use strict';
 
-const gulp      = require('gulp');
+const gulp = require('gulp');
 const frontMatter = require('gulp-front-matter')
-const del       = require('del')
+const del = require('del')
 const $ = require('gulp-load-plugins')()
 const potrace = require('potrace')
 const fs = require('fs')
@@ -38,41 +37,64 @@ const faviconOptions = require('./config/favicon')
 const responsiveOpions = require('./config/responsive')
 const reporter = require('./config/reporter')
 
-gulp.task('clean', function() {
-  return del(structure.dest.dir);
+gulp.task('clean', () => {
+    return del(structure.dest.dir);
 });
 
-gulp.task('favicon-generate', ['clean'], function() {
-  return gulp.src('src/favicon.png').pipe($.favicons(faviconOptions))
-  .on('error', $.util.log)
-  .pipe(gulp.dest(structure.dest.dir));
+gulp.task('favicon-generate', ['clean'],  () => {
+    return gulp.src('src/favicon.png').pipe($.favicons(faviconOptions))
+        .on('error', $.util.log)
+        .pipe(gulp.dest(structure.dest.dir));
 });
 
-gulp.task('inject-favicon', ['favicon-generate'], function() {
-  gulp.src('./src/index.html')
-  .pipe($.inject(gulp.src(['./favicon.html']), {
-    starttag: '<!-- inject:head:{{ext}} -->',
-    transform: function(filePath, file) {
-      return file.contents.toString('utf8'); // return file contents as string
-    }
-  }))
-  .pipe(gulp.dest('./src'));
+
+gulp.task('safari-pinned-tab', () => {
+    potrace.trace('./src/favicon.png', (err, svg) => {
+        if (err) throw err;
+        fs.writeFileSync(structure.dest.dir + '/safari-pinned-tab.svg', svg);
+        gulp.src('./dest/safari-pinned-tab.svg')
+           .pipe($.svgo())
+           .pipe(gulp.dest('./dest'));
+        // add "<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">" to head metatags
+    });
+});
+
+/*
+gulp.task('safari-pinned-tab', () => {
+    potrace.trace('./src/favicon.png', (err, svg) => {
+        if (err) throw err;
+        fs.writeFileSync(structure.dest.dir + '/safari-pinned-tab.svg', svg);
+        // add "<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">" to head metatags
+    });
+});
+
+gulp.task('svgo', () => {
+     gulp.src('./dest/safari-pinned-tab.svg')
+        .pipe($.svgo())
+        .pipe(gulp.dest('./dest'));
+});
+*/
+
+gulp.task('inject-favicon', ['favicon-generate'], () => {
+    gulp.src('./src/index.html')
+        .pipe($.inject(gulp.src(['./favicon.html']), {
+            starttag: '<!-- inject:head:{{ext}} -->',
+            transform: function(filePath, file) {
+                return file.contents.toString('utf8'); // return file contents as string
+            }
+        }))
+        .pipe(gulp.dest('./src'));
 });
 
 gulp.task('img', () => {
-     gulp.src(structure.src.img)
-     .pipe($.plumber(reporter.onError))
+    gulp.src(structure.src.img)
+        .pipe($.plumber(reporter.onError))
         .pipe($.responsive(responsiveOpions))
         .pipe(gulp.dest(structure.dest.img))
 })
 
-gulp.task('clean-favicon', ['inject-favicon'], function() {
-  return del(['favicon.html']);
+gulp.task('clean-favicon', ['inject-favicon'], () => {
+    return del(['favicon.html']);
 });
 
-/**
- * The default task will generate all favicon files, including graphics and
- * configs. It will also build the asset link and meta tags in `favicon.html`,
- * inject them into `index.html`, and remove the generated file.
- */
 gulp.task('default', ['clean-favicon']);
